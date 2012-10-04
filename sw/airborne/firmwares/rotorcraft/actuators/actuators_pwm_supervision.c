@@ -24,6 +24,11 @@
  */
 
 #include "generated/airframe.h"
+
+#ifdef USE_TOYTRONICS
+#include "firmwares/rotorcraft/autopilot.h" // for mode dependent control laws
+#endif
+
 #include "firmwares/rotorcraft/actuators.h"
 #include "firmwares/rotorcraft/commands.h"
 #include "subsystems/radio_control.h"
@@ -53,7 +58,7 @@ void actuators_init(void)
 
 void actuators_set(bool_t motors_on) {
 
-  /* set normal control surface actuators, i.e. servos */
+  /* set normal actuators/servos as defined in command_laws section of the airframe file */
   SetActuatorsFromCommands(commands);
 
   /* run supervision for actuators (motor controllers) that need mixing */

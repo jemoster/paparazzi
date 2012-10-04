@@ -79,9 +79,10 @@ static inline void mpu_set(uint8_t _reg, uint8_t _val)
 {
   aspirin2_mpu60x0.mosi_buf[0] = _reg;
   aspirin2_mpu60x0.mosi_buf[1] = _val;
-  spi_rw(&aspirin2_mpu60x0);
-
+  while (spi_rw(&aspirin2_mpu60x0));
   while(aspirin2_mpu60x0.status != SPITransSuccess);
+  //TODO this was added in the quadshot branch, but isn't supported in HEAD, does this need to be added back?:
+  //  imu_aspirin2.imu_available = FALSE;
 }
 
 static inline void mpu_wait_slave4_ready(void)
@@ -91,15 +92,16 @@ static inline void mpu_wait_slave4_ready(void)
   {
     aspirin2_mpu60x0.mosi_buf[0] = MPU60X0_REG_I2C_SLV4_CTRL | MPU60X0_SPI_READ ;
     aspirin2_mpu60x0.mosi_buf[1] = 0;
-    spi_rw(&aspirin2_mpu60x0);
+    while (spi_rw(&aspirin2_mpu60x0));
     while(aspirin2_mpu60x0.status != SPITransSuccess);
+    //TODO this was added in the quadshot branch, but isn't supported in HEAD, does this need to be added back?:
+    //imu_aspirin2.imu_available = FALSE;
+
+    ret = aspirin2_mpu60x0.miso_buf[1];
 
     ret = aspirin2_mpu60x0.miso_buf[1];
   }
 }
-
-
-
 static void mpu_configure(void)
 {
   aspirin2_mpu60x0.length = 2;
@@ -158,59 +160,58 @@ static void mpu_configure(void)
   mpu_set( MPU60X0_REG_ACCEL_CONFIG,
            (0 << 0) |			// No HPFL
            (3 << 3) );			// Full Scale = 16g
-
 #ifndef MPU6000_NO_SLAVES
 
   /////////////////////////////////////
   // SPI Slave Configuration Section
 
   // Power the Aux I2C Circuit:
-  // MPU60X0_REG_AUX_VDDIO = 0 (good on startup):  (0 << 7);	// MPU6000: 0=Vdd. MPU6050 : 0=VLogic 1=Vdd
+  // MPU60X0_REG_AUX_VDDIO = 0 (good on startup): (0 << 7); // MPU6000: 0=Vdd. MPU6050 : 0=VLogic 1=Vdd
 
   // MPU60X0_REG_USER_CTRL:
   mpu_set( MPU60X0_REG_USER_CTRL,
-           (1 << 5) |		// I2C_MST_EN: Enable Aux I2C Master Mode
-           (1 << 4) |		// I2C_IF_DIS: Disable I2C on primary interface
-           (0 << 1) );		// Trigger a I2C_MST_RESET
+           (1 << 5) |	// I2C_MST_EN: Enable Aux I2C Master Mode
+           (1 << 4) |	// I2C_IF_DIS: Disable I2C on primary interface
+           (0 << 1) );	// Trigger a I2C_MST_RESET
 
   // Enable the aux i2c
   mpu_set( MPU60X0_REG_I2C_MST_CTRL,
-           (0 << 7) | 		// no multimaster
-           (0 << 6) |		// do not delay IRQ waiting for all external slaves
-           (0 << 5) | 		// no slave 3 FIFO
-           (0 << 4) | 		// restart or stop/start from one slave to another: read -> write is always stop/start
-           (8 << 0) );		// 0=348kHz 8=256kHz, 9=500kHz
+           (0 << 7) | // no multimaster
+           (0 << 6) |	// do not delay IRQ waiting for all external slaves
+           (0 << 5) | // no slave 3 FIFO
+           (0 << 4) | // restart or stop/start from one slave to another: read -> write is always stop/start
+           (8 << 0) );	// 0=348kHz 8=256kHz, 9=500kHz
 
 
   // HMC5883 Magnetometer Configuration
 
   mpu_set( MPU60X0_REG_I2C_SLV4_ADDR, (HMC58XX_ADDR >> 1));
-  mpu_set( MPU60X0_REG_I2C_SLV4_REG,  HMC58XX_REG_CFGA);
-  mpu_set( MPU60X0_REG_I2C_SLV4_DO,  HMC58XX_CRA);
+  mpu_set( MPU60X0_REG_I2C_SLV4_REG, HMC58XX_REG_CFGA);
+  mpu_set( MPU60X0_REG_I2C_SLV4_DO, HMC58XX_CRA);
   mpu_set( MPU60X0_REG_I2C_SLV4_CTRL,
-           (1 << 7) |		// Slave 4 enable
-           (0 << 6) |		// Byte Swap
-           (0 << 0) );		// Full Speed
+           (1 << 7) |	// Slave 4 enable
+           (0 << 6) |	// Byte Swap
+           (0 << 0) );	// Full Speed
 
   mpu_wait_slave4_ready();
 
   mpu_set( MPU60X0_REG_I2C_SLV4_ADDR, (HMC58XX_ADDR >> 1));
-  mpu_set( MPU60X0_REG_I2C_SLV4_REG,  HMC58XX_REG_CFGB);
-  mpu_set( MPU60X0_REG_I2C_SLV4_DO,  HMC58XX_CRB);
+  mpu_set( MPU60X0_REG_I2C_SLV4_REG, HMC58XX_REG_CFGB);
+  mpu_set( MPU60X0_REG_I2C_SLV4_DO, HMC58XX_CRB);
   mpu_set( MPU60X0_REG_I2C_SLV4_CTRL,
-           (1 << 7) |		// Slave 4 enable
-           (0 << 6) |		// Byte Swap
-           (0 << 0) );		// Full Speed
+           (1 << 7) |	// Slave 4 enable
+           (0 << 6) |	// Byte Swap
+           (0 << 0) );	// Full Speed
 
   mpu_wait_slave4_ready();
 
   mpu_set( MPU60X0_REG_I2C_SLV4_ADDR, (HMC58XX_ADDR >> 1));
-  mpu_set( MPU60X0_REG_I2C_SLV4_REG,  HMC58XX_REG_MODE);
-  mpu_set( MPU60X0_REG_I2C_SLV4_DO,  HMC58XX_MD);
+  mpu_set( MPU60X0_REG_I2C_SLV4_REG, HMC58XX_REG_MODE);
+  mpu_set( MPU60X0_REG_I2C_SLV4_DO, HMC58XX_MD);
   mpu_set( MPU60X0_REG_I2C_SLV4_CTRL,
-           (1 << 7) |		// Slave 4 enable
-           (0 << 6) |		// Byte Swap
-           (0 << 0) );		// Full Speed
+           (1 << 7) |	// Slave 4 enable
+           (0 << 6) |	// Byte Swap
+           (0 << 0) );	// Full Speed
 
 
   // HMC5883 Reading:
@@ -218,12 +219,12 @@ static void mpu_configure(void)
   // b) read 6 bytes from HMC
 
   mpu_set( MPU60X0_REG_I2C_SLV0_ADDR, (HMC58XX_ADDR >> 1) | MPU60X0_SPI_READ);
-  mpu_set( MPU60X0_REG_I2C_SLV0_REG,  HMC58XX_REG_DATXM);
+  mpu_set( MPU60X0_REG_I2C_SLV0_REG, HMC58XX_REG_DATXM);
   // Put the enable command as last.
   mpu_set( MPU60X0_REG_I2C_SLV0_CTRL,
-           (1 << 7) |		// Slave 0 enable
-           (0 << 6) |		// Byte Swap
-           (6 << 0) );		// Read 6 bytes
+           (1 << 7) |	// Slave 0 enable
+           (0 << 6) |	// Byte Swap
+           (6 << 0) );	// Read 6 bytes
 
   // Slave 0 Control:
 
@@ -231,4 +232,3 @@ static void mpu_configure(void)
 #endif
 
 }
-

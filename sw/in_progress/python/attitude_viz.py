@@ -69,7 +69,7 @@ class Visualization:
       if (graph_value.message_name == data[1]):
         self.display_dirty = True
         graph_value.value = (float(data[graph_value.index + 0]) + graph_value.offset) / graph_value.scale
-
+  
   def DrawCircle(self, radius):
     glBegin(GL_TRIANGLE_FAN)
     glVertex3f(0, 0, 0)
@@ -118,7 +118,7 @@ class Visualization:
     strutcount = 3
     discradius = 0.45
     discseparation = 0.01
-
+   
     #wings
     glColor3f(0.1, 0.1, 0.9)
     glPushMatrix()
@@ -254,7 +254,7 @@ class Visualizer:
       messages.append(vehicle_quat[0])
     for bar_value in BAR_VALUES:
       messages.append(bar_value[0])
-
+    
     # bind to set of messages (ie, only bind each message once)
     for message_name in set(messages):
       bind_string = "(^.*" + message_name + ".*$)"
@@ -264,7 +264,7 @@ class Visualizer:
     if self.visualization.display_dirty:
       self.visualization.Draw()
       self.visualization.display_dirty = False
-
+  
   def OnClose(self):
     IvyStop()
 
@@ -288,7 +288,7 @@ def init():
   glShadeModel (GL_SMOOTH)
   glClearColor(1.0, 1.0, 1.0, 1.0)
   glClearDepth(1.0)
-
+    
   glPointSize(3.0)
 
   glMatrixMode(GL_PROJECTION)
@@ -330,19 +330,18 @@ def run():
   #resize(*SCREEN_SIZE)
   init()
   visualizer = Visualizer()
-
   try:
-    while True:
-      for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-          visualizer.OnClose()
-          return
-        if event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE:
-          visualizer.OnClose()
-          return
-      visualizer.Draw()
-      pygame.display.flip()
-      time.sleep(.02)
+  while True:
+    for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+        visualizer.OnClose()
+        return
+      if event.type == pygame.KEYUP and event.key == pygame.K_ESCAPE:
+        visualizer.OnClose()
+        return
+    visualizer.Draw()
+    pygame.display.flip()
+    time.sleep(.02)
   except KeyboardInterrupt:
     visualizer.OnClose()
     return

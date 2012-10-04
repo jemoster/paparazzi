@@ -73,7 +73,6 @@ ifndef MODEM_BAUD
 MODEM_BAUD=B57600
 endif
 
-
 ifndef GPS_PORT
 GPS_PORT=UART1
 endif

@@ -53,7 +53,6 @@
 #define LED_5_GPIO_CLK RCC_APB2Periph_GPIOC
 #define LED_5_GPIO_PIN GPIO_Pin_15
 #define LED_5_AFIO_REMAP ((void)0)
-
 /*
  * LEDs not populated by default
  */

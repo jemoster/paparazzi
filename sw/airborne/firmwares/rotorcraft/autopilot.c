@@ -26,10 +26,16 @@
 #include "firmwares/rotorcraft/navigation.h"
 #include "firmwares/rotorcraft/guidance.h"
 #include "firmwares/rotorcraft/stabilization.h"
+#include "firmwares/rotorcraft/camera_mount.h"
 #include "led.h"
 
+#ifdef AUTOPILOT_LOBATT_WING_WAGGLE
+  #include "subsystems/electrical.h"
+  #include "firmwares/rotorcraft/toytronics/toytronics_setpoint.h"
+#endif
 uint8_t  autopilot_mode;
 uint8_t  autopilot_mode_auto2;
+int32_t  autopilot_lobatt_wing_waggle_interval; //interval at which wing waggle series occurs if batt is low
 
 bool_t   autopilot_in_flight;
 uint32_t autopilot_in_flight_counter;
@@ -79,6 +85,12 @@ void autopilot_init(void) {
   autopilot_power_switch = FALSE;
 #ifdef POWER_SWITCH_LED
   LED_ON(POWER_SWITCH_LED); // POWER OFF
+  #endif
+  #ifdef USE_CAMERA_MOUNT
+	camera_mount_init();
+  #endif
+  #ifdef AUTOPILOT_LOBATT_WING_WAGGLE
+	autopilot_lobatt_wing_waggle_interval = AUTOPILOT_LOBATT_WING_WAGGLE_INTERVAL;
 #endif
   autopilot_arming_init();
 }
@@ -93,7 +105,6 @@ void autopilot_periodic(void) {
     autopilot_detect_ground = FALSE;
   }
 #endif
-
   /* set failsafe commands, if in FAILSAFE or KILL mode */
 #ifndef FAILSAFE_GROUND_DETECT
   if (autopilot_mode == AP_MODE_KILL ||
@@ -111,6 +122,14 @@ void autopilot_periodic(void) {
         autopilot_in_flight, autopilot_motors_on);
   }
 
+#ifdef AUTOPILOT_LOBATT_WING_WAGGLE
+  if (electrical.vsupply < (MIN_BAT_LEVEL * 10)){
+	RunOnceEvery(autopilot_lobatt_wing_waggle_interval,{setpoint_lobatt_wing_waggle_num=0;})
+  }
+#endif
+#ifdef USE_CAMERA_MOUNT
+  camera_mount_run();
+#endif
 }
 
 
@@ -156,6 +175,18 @@ void autopilot_set_mode(uint8_t new_autopilot_mode) {
     case AP_MODE_NAV:
       guidance_h_mode_changed(GUIDANCE_H_MODE_NAV);
       break;
+	case AP_MODE_TOYTRONICS_HOVER:
+	  guidance_h_mode_changed(GUIDANCE_H_MODE_TOYTRONICS_HOVER);
+	  break;
+	case AP_MODE_TOYTRONICS_HOVER_FORWARD:
+	  guidance_h_mode_changed(GUIDANCE_H_MODE_TOYTRONICS_HOVER_FORWARD);
+	  break;
+	case AP_MODE_TOYTRONICS_FORWARD:
+	  guidance_h_mode_changed(GUIDANCE_H_MODE_TOYTRONICS_FORWARD);
+	  break;
+	case AP_MODE_TOYTRONICS_AEROBATIC:
+	  guidance_h_mode_changed(GUIDANCE_H_MODE_TOYTRONICS_AEROBATIC);
+      break;
     default:
       break;
     }
@@ -174,6 +205,10 @@ void autopilot_set_mode(uint8_t new_autopilot_mode) {
     case AP_MODE_RATE_DIRECT:
     case AP_MODE_ATTITUDE_DIRECT:
     case AP_MODE_HOVER_DIRECT:
+	case AP_MODE_TOYTRONICS_HOVER:
+	case AP_MODE_TOYTRONICS_HOVER_FORWARD:
+	case AP_MODE_TOYTRONICS_FORWARD:
+	case AP_MODE_TOYTRONICS_AEROBATIC:
       guidance_v_mode_changed(GUIDANCE_V_MODE_RC_DIRECT);
       break;
     case AP_MODE_RATE_RC_CLIMB:

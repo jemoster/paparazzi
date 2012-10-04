@@ -36,6 +36,11 @@
 
 #include "generated/airframe.h"
 
+#ifdef TOYTRONICS
+#include "firmwares/rotorcraft/toytronics/toytronics_setpoint.h"
+#endif
+
+
 uint8_t guidance_h_mode;
 
 struct Int32Vect2 guidance_h_pos_sp;
@@ -110,6 +115,23 @@ void guidance_h_mode_changed(uint8_t new_mode) {
   if (new_mode == guidance_h_mode)
     return;
 
+  switch ( guidance_h_mode ) {
+	//      case GUIDANCE_H_MODE_RATE:
+	//	stabilization_rate_exit();
+	//	break;
+#ifdef TOYTRONICS
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER:
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER_FORWARD:
+  case GUIDANCE_H_MODE_TOYTRONICS_FORWARD:
+  case GUIDANCE_H_MODE_TOYTRONICS_AEROBATIC:
+    toytronics_mode_exit(guidance_h_mode);
+    break;
+#endif
+
+  default:
+    break;
+  }
+
   switch (new_mode) {
 
   case GUIDANCE_H_MODE_RC_DIRECT:
@@ -131,6 +153,17 @@ void guidance_h_mode_changed(uint8_t new_mode) {
   case GUIDANCE_H_MODE_NAV:
     guidance_h_nav_enter();
     break;
+
+#ifdef TOYTRONICS
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER:
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER_FORWARD:
+  case GUIDANCE_H_MODE_TOYTRONICS_FORWARD:
+  case GUIDANCE_H_MODE_TOYTRONICS_AEROBATIC:
+    toytronics_mode_enter(new_mode);
+    stabilization_attitude_enter();
+    break;
+#endif
+
   default:
     break;
   }
@@ -160,6 +193,24 @@ void guidance_h_read_rc(bool_t  in_flight) {
     stabilization_attitude_read_rc_setpoint_eulers(&guidance_h_rc_sp, in_flight);
     break;
 
+#ifdef TOYTRONICS
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER:
+    toytronics_set_sp_absolute_hover_from_rc();
+    break;
+
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER_FORWARD:
+    toytronics_set_sp_hover_forward_from_rc();
+    break;
+
+  case GUIDANCE_H_MODE_TOYTRONICS_FORWARD:
+    toytronics_set_sp_absolute_forward_from_rc();
+    break;
+
+  case GUIDANCE_H_MODE_TOYTRONICS_AEROBATIC:
+    toytronics_set_sp_incremental_from_rc();
+    break;
+#endif
+
   case GUIDANCE_H_MODE_NAV:
     if (radio_control.status == RC_OK) {
       stabilization_attitude_read_rc_setpoint_eulers(&guidance_h_rc_sp, in_flight);
@@ -168,6 +219,7 @@ void guidance_h_read_rc(bool_t  in_flight) {
       INT_EULERS_ZERO(guidance_h_rc_sp);
     }
     break;
+
   default:
     break;
   }
@@ -201,6 +253,15 @@ void guidance_h_run(bool_t  in_flight) {
     stabilization_attitude_run(in_flight);
     break;
 
+#ifdef TOYTRONICS
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER:
+  case GUIDANCE_H_MODE_TOYTRONICS_HOVER_FORWARD:
+  case GUIDANCE_H_MODE_TOYTRONICS_FORWARD:
+  case GUIDANCE_H_MODE_TOYTRONICS_AEROBATIC:
+    stabilization_attitude_run(in_flight);
+    break;
+#endif
+
   case GUIDANCE_H_MODE_NAV:
     {
       if (!in_flight) guidance_h_nav_enter();
@@ -231,6 +292,7 @@ void guidance_h_run(bool_t  in_flight) {
       stabilization_attitude_run(in_flight);
       break;
     }
+
   default:
     break;
   }
